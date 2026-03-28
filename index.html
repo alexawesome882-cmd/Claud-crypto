@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Crypto Trader</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0e17;color:#e1e4e8;min-height:100vh}
+.header{background:#131829;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e2740}
+.header h1{font-size:20px;color:#58a6ff}
+.header .controls{display:flex;gap:10px;align-items:center}
+.btn{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.btn-start{background:#238636;color:#fff}.btn-start:hover{background:#2ea043}
+.btn-stop{background:#da3633;color:#fff}.btn-stop:hover{background:#e5534b}
+.btn-sm{padding:5px 12px;font-size:12px}
+.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.active{background:#3fb950;box-shadow:0 0 6px #3fb950}
+.status-dot.inactive{background:#6e7681}
+.tabs{display:flex;gap:0;background:#131829;border-bottom:1px solid #1e2740;padding:0 24px}
+.tab{padding:10px 20px;cursor:pointer;color:#8b949e;font-size:13px;font-weight:500;border-bottom:2px solid transparent;transition:.2s}
+.tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tab:hover{color:#c9d1d9}
+.main{padding:20px 24px;max-width:1400px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-top:14px}
+.card{background:#161b2e;border:1px solid #1e2740;border-radius:10px;padding:16px}
+.card h3{font-size:13px;color:#8b949e;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.card .price{font-size:24px;font-weight:700;color:#e1e4e8}
+.card .change{font-size:13px;font-weight:600;margin-top:4px}
+.green{color:#3fb950}.red{color:#f85149}
+.signal-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.signal-buy{background:rgba(63,185,80,.15);color:#3fb950}
+.signal-sell{background:rgba(248,81,73,.15);color:#f85149}
+.signal-hold{background:rgba(139,148,158,.15);color:#8b949e}
+.mini-chart{height:40px;display:flex;align-items:end;gap:1px;margin-top:10px}
+.mini-chart .bar{flex:1;background:#238636;border-radius:1px;min-height:2px;transition:height .3s}
+.mini-chart .bar.down{background:#da3633}
+.portfolio-table{width:100%;border-collapse:collapse;margin-top:14px}
+.portfolio-table th{text-align:left;padding:10px 12px;color:#8b949e;font-size:12px;font-weight:600;border-bottom:1px solid #1e2740;text-transform:uppercase}
+.portfolio-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid #1e2740}
+.log-entry{padding:10px 14px;border-bottom:1px solid #1e2740;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.log-entry .time{color:#6e7681;font-size:11px;min-width:80px}
+.log-entry .action{font-weight:600}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:14px}
+.stat-card{background:#161b2e;border:1px solid #1e2740;border-radius:10px;padding:14px}
+.stat-card .label{font-size:11px;color:#6e7681;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .value{font-size:22px;font-weight:700;margin-top:4px}
+.notification-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:1000;display:none}
+.notification-overlay.show{display:flex}
+.notification-box{background:#1c2333;border:1px solid #e3b341;border-radius:12px;padding:24px;max-width:400px;width:90%;text-align:center}
+.notification-box h3{color:#e3b341;margin-bottom:8px;font-size:16px}
+.notification-box p{color:#c9d1d9;font-size:14px;margin-bottom:6px}
+.notification-box .countdown{font-size:28px;font-weight:700;color:#e3b341;margin:12px 0}
+.notification-box .btn-row{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.brain-info{background:#161b2e;border:1px solid #1e2740;border-radius:10px;padding:16px;margin-top:14px}
+.brain-info h3{color:#58a6ff;font-size:14px;margin-bottom:8px}
+.brain-info p{font-size:12px;color:#8b949e;line-height:1.6}
+.settings-group{background:#161b2e;border:1px solid #1e2740;border-radius:10px;padding:16px;margin-top:14px}
+.settings-group label{display:block;font-size:13px;color:#c9d1d9;margin-bottom:6px}
+.settings-group input,.settings-group select{background:#0d1117;border:1px solid #1e2740;color:#e1e4e8;padding:8px 12px;border-radius:6px;width:100%;margin-bottom:12px;font-size:13px}
+.empty-state{text-align:center;padding:40px;color:#6e7681}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AI Crypto Trader</h1>
+  <div class="controls">
+    <span><span class="status-dot inactive" id="statusDot"></span><span id="statusText">Stopped</span></span>
+    <button class="btn btn-start" id="btnStart" onclick="startTrading()">Start</button>
+    <button class="btn btn-stop" id="btnStop" onclick="stopTrading()" style="display:none">Stop</button>
+    <span style="color:#6e7681;font-size:12px" id="clock"></span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('portfolio')">Portfolio</div>
+  <div class="tab" onclick="switchTab('log')">Trade Log</div>
+  <div class="tab" onclick="switchTab('settings')">Settings</div>
+</div>
+
+<div class="main">
+  <!-- DASHBOARD -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="label">Balance</div><div class="value" id="statBalance">$10,000.00</div></div>
+      <div class="stat-card"><div class="label">Portfolio Value</div><div class="value" id="statPortfolio">$0.00</div></div>
+      <div class="stat-card"><div class="label">Total P&L</div><div class="value" id="statPnl">$0.00</div></div>
+      <div class="stat-card"><div class="label">Trades Today</div><div class="value" id="statTrades">0</div></div>
+      <div class="stat-card"><div class="label">Win Rate</div><div class="value" id="statWinRate">0%</div></div>
+    </div>
+    <h3 style="color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:.5px">AI Watchlist — Coins Deemed Profitable</h3>
+    <div class="grid" id="watchlistGrid"></div>
+    <div class="brain-info">
+      <h3>AI Brain Status</h3>
+      <p id="brainStatus">Brain is idle. Click Start to begin autonomous trading.</p>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO -->
+  <div class="panel" id="panel-portfolio">
+    <h3 style="color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Current Holdings</h3>
+    <table class="portfolio-table">
+      <thead><tr><th>Coin</th><th>Amount</th><th>Avg Buy</th><th>Current</th><th>Value</th><th>P&L</th></tr></thead>
+      <tbody id="portfolioBody"></tbody>
+    </table>
+    <div class="empty-state" id="portfolioEmpty">No holdings yet. Start the AI to begin trading.</div>
+  </div>
+
+  <!-- TRADE LOG -->
+  <div class="panel" id="panel-log">
+    <h3 style="color:#8b949e;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Recent Trades</h3>
+    <div id="tradeLog"><div class="empty-state">No trades yet.</div></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="panel-settings">
+    <div class="settings-group">
+      <label>Starting Balance ($)</label>
+      <input type="number" id="setBalance" value="10000">
+      <label>Max Position Size (% of balance)</label>
+      <input type="number" id="setMaxPos" value="15" min="1" max="100">
+      <label>Risk Tolerance</label>
+      <select id="setRisk">
+        <option value="low">Low — Conservative</option>
+        <option value="medium" selected>Medium — Balanced</option>
+        <option value="high">High — Aggressive</option>
+      </select>
+      <label>Trade Interval (seconds)</label>
+      <input type="number" id="setInterval" value="30" min="10" max="300">
+      <label>Risky Trade Confirmation (seconds)</label>
+      <input type="number" id="setConfirmTime" value="3" min="1" max="10">
+      <button class="btn btn-start" onclick="applySettings()">Apply & Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION OVERLAY -->
+<div class="notification-overlay" id="notifOverlay">
+  <div class="notification-box">
+    <h3>⚠ Risky Trade Detected</h3>
+    <p id="notifText"></p>
+    <div class="countdown" id="notifCountdown">3</div>
+    <p style="font-size:11px;color:#6e7681">Auto-confirming in <span id="notifSecs">3</span>s...</p>
+    <div class="btn-row">
+      <button class="btn btn-stop" onclick="cancelTrade()">Cancel</button>
+      <button class="btn btn-start" onclick="confirmTrade()">Confirm Now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+const COINS = [
+  {id:'bitcoin',sym:'BTC',name:'Bitcoin'},
+  {id:'ethereum',sym:'ETH',name:'Ethereum'},
+  {id:'solana',sym:'SOL',name:'Solana'},
+  {id:'dogecoin',sym:'DOGE',name:'Dogecoin'},
+  {id:'cardano',sym:'ADA',name:'Cardano'},
+  {id:'ripple',sym:'XRP',name:'XRP'},
+  {id:'avalanche-2',sym:'AVAX',name:'Avalanche'},
+  {id:'polkadot',sym:'DOT',name:'Polkadot'},
+  {id:'chainlink',sym:'LINK',name:'Chainlink'},
+  {id:'polygon-ecosystem-token',sym:'POL',name:'Polygon'},
+  {id:'litecoin',sym:'LTC',name:'Litecoin'},
+  {id:'uniswap',sym:'UNI',name:'Uniswap'}
+];
+
+let state = loadState();
+let running = false;
+let loopTimer = null;
+let prices = {};       // {coinId: {usd, usd_24h_change, history:[]}}
+let pendingTrade = null;
+let notifTimer = null;
+
+function defaultState(){
+  return {
+    balance: 10000,
+    holdings: {},   // {coinId: {amount, avgPrice, buyTime}}
+    tradeLog: [],
+    wins: 0,
+    losses: 0,
+    totalTrades: 0,
+    startBalance: 10000
+  };
+}
+function loadState(){
+  try{ const s=JSON.parse(localStorage.getItem('aitrader')); return s && s.balance !== undefined ? s : defaultState(); }
+  catch(e){ return defaultState(); }
+}
+function saveState(){ localStorage.setItem('aitrader', JSON.stringify(state)); }
+
+// ========== UI ==========
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=> t.classList.toggle('active', t.textContent.toLowerCase().includes(name.slice(0,4))));
+  document.querySelectorAll('.panel').forEach(p=> p.classList.toggle('active', p.id==='panel-'+name));
+  if(name==='portfolio') renderPortfolio();
+}
+
+function renderWatchlist(){
+  const grid = document.getElementById('watchlistGrid');
+  // Pick top coins the brain finds interesting (sorted by absolute change)
+  const ranked = COINS.filter(c=> prices[c.id]).sort((a,b)=> Math.abs(prices[b.id].usd_24h_change||0) - Math.abs(prices[a.id].usd_24h_change||0));
+  grid.innerHTML = ranked.map(c=>{
+    const p = prices[c.id];
+    if(!p) return '';
+    const chg = p.usd_24h_change||0;
+    const signal = getSignal(c.id);
+    const sigClass = signal==='BUY'?'signal-buy':signal==='SELL'?'signal-sell':'signal-hold';
+    const hist = p.history||[];
+    const maxH = Math.max(...hist.map(Math.abs),1);
+    const bars = hist.slice(-20).map(h=>{
+      const pct = Math.max(5, (Math.abs(h)/maxH)*100);
+      return `<div class="bar ${h<0?'down':''}" style="height:${pct}%"></div>`;
+    }).join('');
+    const held = state.holdings[c.id];
+    const holdTag = held ? `<span style="color:#e3b341;font-size:10px">HOLDING</span>` : '';
+    return `<div class="card">
+      <h3>${c.sym} — ${c.name} ${holdTag}</h3>
+      <div class="price">$${fmt(p.usd)}</div>
+      <div class="change ${chg>=0?'green':'red'}">${chg>=0?'+':''}${chg.toFixed(2)}% 24h</div>
+      <span class="signal-badge ${sigClass}">${signal}</span>
+      <div class="mini-chart">${bars}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPortfolio(){
+  const body = document.getElementById('portfolioBody');
+  const empty = document.getElementById('portfolioEmpty');
+  // IMPORTANT: Only show coins we actually hold (amount > 0)
+  const held = Object.entries(state.holdings).filter(([id,h])=> h && h.amount > 0.000001);
+  if(held.length===0){
+    body.innerHTML='';
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  body.innerHTML = held.map(([id,h])=>{
+    const coin = COINS.find(c=>c.id===id);
+    const cur = prices[id]?prices[id].usd:h.avgPrice;
+    const val = h.amount*cur;
+    const pnl = (cur - h.avgPrice)*h.amount;
+    const pnlPct = ((cur/h.avgPrice)-1)*100;
+    return `<tr>
+      <td><strong>${coin?coin.sym:id}</strong></td>
+      <td>${h.amount.toFixed(6)}</td>
+      <td>$${fmt(h.avgPrice)}</td>
+      <td>$${fmt(cur)}</td>
+      <td>$${fmt(val)}</td>
+      <td class="${pnl>=0?'green':'red'}">${pnl>=0?'+':''}$${fmt(Math.abs(pnl))} (${pnlPct.toFixed(1)}%)</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStats(){
+  const portVal = Object.entries(state.holdings).reduce((sum,[id,h])=>{
+    if(!h||h.amount<=0) return sum;
+    const cur = prices[id]?prices[id].usd:h.avgPrice;
+    return sum + h.amount*cur;
+  },0);
+  const totalVal = state.balance + portVal;
+  const pnl = totalVal - state.startBalance;
+  document.getElementById('statBalance').textContent = '$'+fmt(state.balance);
+  document.getElementById('statPortfolio').textContent = '$'+fmt(portVal);
+  const pnlEl = document.getElementById('statPnl');
+  pnlEl.textContent = (pnl>=0?'+':'-')+'$'+fmt(Math.abs(pnl));
+  pnlEl.className = 'value '+(pnl>=0?'green':'red');
+  document.getElementById('statTrades').textContent = state.totalTrades;
+  const wr = state.totalTrades>0 ? ((state.wins/state.totalTrades)*100).toFixed(0) : 0;
+  document.getElementById('statWinRate').textContent = wr+'%';
+}
+
+function addLogEntry(text, type){
+  const now = new Date();
+  const time = now.toLocaleTimeString();
+  state.tradeLog.unshift({text, type, time: now.toISOString()});
+  if(state.tradeLog.length>200) state.tradeLog.pop();
+  saveState();
+  renderLog();
+}
+function renderLog(){
+  const el = document.getElementById('tradeLog');
+  if(state.tradeLog.length===0){ el.innerHTML='<div class="empty-state">No trades yet.</div>'; return; }
+  el.innerHTML = state.tradeLog.slice(0,50).map(e=>{
+    const d = new Date(e.time);
+    const actionClass = e.type==='buy'?'green':e.type==='sell'?'red':'';
+    return `<div class="log-entry"><span class="time">${d.toLocaleTimeString()}</span><span class="action ${actionClass}">${e.text}</span></div>`;
+  }).join('');
+}
+
+function fmt(n){ return n>=1?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toPrecision(4); }
+
+// ========== PRICE FETCHING ==========
+async function fetchPrices(){
+  try{
+    const ids = COINS.map(c=>c.id).join(',');
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
+    const data = await r.json();
+    for(const c of COINS){
+      if(!data[c.id]) continue;
+      if(!prices[c.id]) prices[c.id]={usd:0,usd_24h_change:0,history:[]};
+      const old = prices[c.id].usd;
+      prices[c.id].usd = data[c.id].usd;
+      prices[c.id].usd_24h_change = data[c.id].usd_24h_change||0;
+      if(old>0) prices[c.id].history.push(data[c.id].usd - old);
+      if(prices[c.id].history.length>60) prices[c.id].history.shift();
+    }
+  }catch(e){ console.warn('Price fetch failed:',e); }
+}
+
+// ========== AI BRAIN ==========
+function getSignal(coinId){
+  const p = prices[coinId];
+  if(!p) return 'HOLD';
+  const chg = p.usd_24h_change||0;
+  const hist = p.history||[];
+  const held = state.holdings[coinId];
+
+  // Momentum: recent price direction
+  const recent = hist.slice(-5);
+  const momentum = recent.length>0 ? recent.reduce((a,b)=>a+b,0) : 0;
+  const momPositive = momentum > 0;
+
+  // Volatility check
+  const vol = recent.length>1 ? Math.sqrt(recent.reduce((s,v)=>s+v*v,0)/recent.length) : 0;
+  const avgPrice = p.usd;
+  const volPct = avgPrice>0 ? (vol/avgPrice)*100 : 0;
+
+  // Time awareness: prefer trading during high-volume hours (9-16 UTC)
+  const hour = new Date().getUTCHours();
+  const goodHours = hour>=9 && hour<=20;
+
+  // Trend: 24h change as long-term signal
+  const bullish24h = chg > 1.5;
+  const bearish24h = chg < -1.5;
+
+  // If we hold this coin, evaluate sell conditions
+  if(held && held.amount>0){
+    const curPrice = p.usd;
+    const gain = ((curPrice/held.avgPrice)-1)*100;
+    const holdMins = (Date.now()-held.buyTime)/60000;
+    // Take profit at 3%+ or stop loss at -2%
+    if(gain > 3) return 'SELL';
+    if(gain < -2) return 'SELL';
+    // If held > 30 min and momentum reversed
+    if(holdMins > 30 && !momPositive && gain > 0.5) return 'SELL';
+    // If bearish swing after holding
+    if(bearish24h && holdMins > 10) return 'SELL';
+    return 'HOLD';
+  }
+
+  // Buy conditions for coins we don't hold
+  let score = 0;
+  if(momPositive) score += 2;
+  if(bullish24h) score += 2;
+  if(goodHours) score += 1;
+  if(volPct > 0.01 && volPct < 2) score += 1; // moderate volatility is good
+  if(chg > 0.5 && chg < 8) score += 1; // trending up but not overextended
+
+  const riskLevel = document.getElementById('setRisk').value;
+  const threshold = riskLevel==='high'?3 : riskLevel==='low'?6 : 4;
+
+  if(score >= threshold) return 'BUY';
+  return 'HOLD';
+}
+
+function isRiskyTrade(coinId, action, amount){
+  const posSize = amount / (state.balance + amount);
+  if(posSize > 0.2) return true;
+  const p = prices[coinId];
+  if(!p) return false;
+  const vol = Math.abs(p.usd_24h_change||0);
+  if(vol > 8) return true; // very volatile
+  return false;
+}
+
+async function brainCycle(){
+  if(!running) return;
+  const brainEl = document.getElementById('brainStatus');
+  brainEl.textContent = 'Scanning markets... ' + new Date().toLocaleTimeString();
+
+  await fetchPrices();
+  renderWatchlist();
+  renderStats();
+
+  // Shuffle coin evaluation order for diversity
+  const shuffled = [...COINS].sort(()=>Math.random()-0.5);
+  const maxPositions = 4;
+  const holdCount = Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length;
+  const maxPosPct = parseInt(document.getElementById('setMaxPos').value)||15;
+
+  for(const coin of shuffled){
+    if(!prices[coin.id]) continue;
+    const signal = getSignal(coin.id);
+
+    if(signal === 'BUY' && holdCount < maxPositions){
+      const posSize = state.balance * (maxPosPct/100);
+      if(posSize < 5 || state.balance < 10) continue;
+      const price = prices[coin.id].usd;
+      const amount = posSize / price;
+
+      if(isRiskyTrade(coin.id, 'BUY', posSize)){
+        await showRiskyNotification(coin, 'BUY', amount, price, posSize);
+      } else {
+        executeBuy(coin, amount, price, posSize);
+      }
+      break; // one trade per cycle
+    }
+
+    if(signal === 'SELL' && state.holdings[coin.id] && state.holdings[coin.id].amount > 0.000001){
+      const h = state.holdings[coin.id];
+      const price = prices[coin.id].usd;
+      const value = h.amount * price;
+
+      if(isRiskyTrade(coin.id, 'SELL', value)){
+        await showRiskyNotification(coin, 'SELL', h.amount, price, value);
+      } else {
+        executeSell(coin, h.amount, price, value);
+      }
+      break;
+    }
+  }
+
+  brainEl.textContent = `Brain active — Last scan: ${new Date().toLocaleTimeString()} | Watching ${COINS.length} coins | Holding ${Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length} positions`;
+  renderPortfolio();
+  renderStats();
+}
+
+function executeBuy(coin, amount, price, cost){
+  state.balance -= cost;
+  if(!state.holdings[coin.id]){
+    state.holdings[coin.id] = {amount, avgPrice: price, buyTime: Date.now()};
+  } else {
+    const old = state.holdings[coin.id];
+    const totalAmt = old.amount + amount;
+    const avgP = ((old.amount*old.avgPrice)+(amount*price))/totalAmt;
+    state.holdings[coin.id] = {amount: totalAmt, avgPrice: avgP, buyTime: old.buyTime};
+  }
+  state.totalTrades++;
+  addLogEntry(`BUY ${amount.toFixed(6)} ${coin.sym} @ $${fmt(price)} ($${fmt(cost)})`, 'buy');
+  saveState();
+}
+
+function executeSell(coin, amount, price, value){
+  const h = state.holdings[coin.id];
+  if(!h) return;
+  const pnl = (price - h.avgPrice) * amount;
+  if(pnl > 0) state.wins++; else state.losses++;
+  state.balance += value;
+  // CRITICAL: Remove the holding completely
+  delete state.holdings[coin.id];
+  state.totalTrades++;
+  addLogEntry(`SELL ${amount.toFixed(6)} ${coin.sym} @ $${fmt(price)} ($${fmt(value)}) P&L: ${pnl>=0?'+':''}$${fmt(Math.abs(pnl))}`, 'sell');
+  saveState();
+}
+
+// ========== RISKY TRADE NOTIFICATION ==========
+function showRiskyNotification(coin, action, amount, price, value){
+  return new Promise((resolve)=>{
+    pendingTrade = {coin, action, amount, price, value, resolve};
+    const confirmSecs = parseInt(document.getElementById('setConfirmTime').value)||3;
+    let secsLeft = confirmSecs;
+    document.getElementById('notifText').textContent = `${action} ${amount.toFixed(6)} ${coin.sym} @ $${fmt(price)} — Total: $${fmt(value)}`;
+    document.getElementById('notifCountdown').textContent = secsLeft;
+    document.getElementById('notifSecs').textContent = secsLeft;
+    document.getElementById('notifOverlay').classList.add('show');
+
+    notifTimer = setInterval(()=>{
+      secsLeft--;
+      document.getElementById('notifCountdown').textContent = secsLeft;
+      document.getElementById('notifSecs').textContent = secsLeft;
+      if(secsLeft<=0) confirmTrade();
+    },1000);
+  });
+}
+
+function confirmTrade(){
+  if(!pendingTrade) return;
+  clearInterval(notifTimer);
+  document.getElementById('notifOverlay').classList.remove('show');
+  const t = pendingTrade;
+  if(t.action==='BUY') executeBuy(t.coin, t.amount, t.price, t.amount*t.price);
+  else executeSell(t.coin, t.amount, t.price, t.value);
+  t.resolve();
+  pendingTrade = null;
+}
+
+function cancelTrade(){
+  if(!pendingTrade) return;
+  clearInterval(notifTimer);
+  document.getElementById('notifOverlay').classList.remove('show');
+  addLogEntry(`CANCELLED risky ${pendingTrade.action} on ${pendingTrade.coin.sym}`, 'cancel');
+  pendingTrade.resolve();
+  pendingTrade = null;
+}
+
+// ========== CONTROLS ==========
+function startTrading(){
+  running = true;
+  document.getElementById('btnStart').style.display='none';
+  document.getElementById('btnStop').style.display='inline-block';
+  document.getElementById('statusDot').className='status-dot active';
+  document.getElementById('statusText').textContent='Running';
+  const interval = (parseInt(document.getElementById('setInterval').value)||30)*1000;
+  brainCycle();
+  loopTimer = setInterval(brainCycle, interval);
+}
+
+function stopTrading(){
+  running = false;
+  clearInterval(loopTimer);
+  document.getElementById('btnStart').style.display='inline-block';
+  document.getElementById('btnStop').style.display='none';
+  document.getElementById('statusDot').className='status-dot inactive';
+  document.getElementById('statusText').textContent='Stopped';
+  document.getElementById('brainStatus').textContent='Brain paused. Click Start to resume.';
+}
+
+function applySettings(){
+  const newBal = parseFloat(document.getElementById('setBalance').value)||10000;
+  state = defaultState();
+  state.balance = newBal;
+  state.startBalance = newBal;
+  saveState();
+  renderStats();
+  renderPortfolio();
+  renderLog();
+  if(running) stopTrading();
+  alert('Settings applied. Portfolio reset.');
+}
+
+// ========== CLOCK ==========
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString() + ' | UTC ' + now.getUTCHours()+':'+String(now.getUTCMinutes()).padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ========== INIT ==========
+async function init(){
+  renderStats();
+  renderLog();
+  renderPortfolio();
+  await fetchPrices();
+  renderWatchlist();
+}
+init();
+</script>
+</body>
+</html>
