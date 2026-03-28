@@ -129,7 +129,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0e17;color:#e1e4e
         <option value="high">High — Aggressive</option>
       </select>
       <label>Trade Interval (seconds)</label>
-      <input type="number" id="setInterval" value="30" min="10" max="300">
+      <input type="number" id="setInterval" value="15" min="10" max="300">
       <label>Risky Trade Confirmation (seconds)</label>
       <input type="number" id="setConfirmTime" value="3" min="1" max="10">
       <button class="btn btn-start" onclick="applySettings()">Apply & Reset</button>
@@ -339,23 +339,23 @@ function getSignal(coinId){
   const bullish24h = chg > 1.5;
   const bearish24h = chg < -1.5;
 
-  // If we hold this coin, evaluate sell conditions — sell often, even penny profits
+  // If we hold this coin — sell aggressively, rotate capital fast
   if(held && held.amount>0){
     const curPrice = p.usd;
     const gain = ((curPrice/held.avgPrice)-1)*100;
     const holdMins = (Date.now()-held.buyTime)/60000;
-    // Quick scalp: take any profit > 0.3%
-    if(gain > 0.3) return 'SELL';
-    // Stop loss at -1.5%
-    if(gain < -1.5) return 'SELL';
-    // If held > 5 min with any profit at all, take it
-    if(holdMins > 5 && gain > 0) return 'SELL';
-    // If held > 10 min and momentum reversed, cut even small losses
-    if(holdMins > 10 && !momPositive) return 'SELL';
-    // If held > 20 min regardless — don't sit on stale positions
-    if(holdMins > 20) return 'SELL';
-    // If bearish swing, get out fast
-    if(bearish24h && holdMins > 3) return 'SELL';
+    // Any profit at all? Take it.
+    if(gain > 0.1) return 'SELL';
+    // Stop loss — don't let losers bleed
+    if(gain < -1) return 'SELL';
+    // Held 2+ min with any gain — grab it
+    if(holdMins >= 2 && gain > 0) return 'SELL';
+    // Held 3+ min and momentum is gone — cut it
+    if(holdMins >= 3 && !momPositive) return 'SELL';
+    // Held 5+ min — sell no matter what, rotate into something else
+    if(holdMins >= 5) return 'SELL';
+    // Bearish day and held at all — bail
+    if(bearish24h) return 'SELL';
     return 'HOLD';
   }
 
@@ -368,7 +368,7 @@ function getSignal(coinId){
   if(chg > 0.5 && chg < 8) score += 1; // trending up but not overextended
 
   const riskLevel = document.getElementById('setRisk').value;
-  const threshold = riskLevel==='high'?3 : riskLevel==='low'?6 : 4;
+  const threshold = riskLevel==='high'?2 : riskLevel==='low'?5 : 3;
 
   if(score >= threshold) return 'BUY';
   return 'HOLD';
@@ -393,42 +393,45 @@ async function brainCycle(){
   renderWatchlist();
   renderStats();
 
-  // Shuffle coin evaluation order for diversity
-  const shuffled = [...COINS].sort(()=>Math.random()-0.5);
-  const maxPositions = 4;
-  const holdCount = Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length;
+  // PHASE 1: SELL first — always check all holdings before buying
   const maxPosPct = parseInt(document.getElementById('setMaxPos').value)||15;
-
-  for(const coin of shuffled){
+  for(const coin of COINS){
     if(!prices[coin.id]) continue;
+    if(!state.holdings[coin.id] || state.holdings[coin.id].amount <= 0.000001) continue;
     const signal = getSignal(coin.id);
-
-    if(signal === 'BUY' && holdCount < maxPositions){
-      const posSize = state.balance * (maxPosPct/100);
-      if(posSize < 1 || state.balance < 1 || state.balance <= 0) continue;
-      const price = prices[coin.id].usd;
-      const amount = posSize / price;
-
-      if(isRiskyTrade(coin.id, 'BUY', posSize)){
-        await showRiskyNotification(coin, 'BUY', amount, price, posSize);
-      } else {
-        executeBuy(coin, amount, price, posSize);
-      }
-      break; // one trade per cycle
+    if(signal !== 'SELL') continue;
+    const h = state.holdings[coin.id];
+    const price = prices[coin.id].usd;
+    const value = h.amount * price;
+    if(isRiskyTrade(coin.id, 'SELL', value)){
+      await showRiskyNotification(coin, 'SELL', h.amount, price, value);
+    } else {
+      executeSell(coin, h.amount, price, value);
     }
+  }
 
-    if(signal === 'SELL' && state.holdings[coin.id] && state.holdings[coin.id].amount > 0.000001){
-      const h = state.holdings[coin.id];
-      const price = prices[coin.id].usd;
-      const value = h.amount * price;
-
-      if(isRiskyTrade(coin.id, 'SELL', value)){
-        await showRiskyNotification(coin, 'SELL', h.amount, price, value);
-      } else {
-        executeSell(coin, h.amount, price, value);
-      }
-      break;
+  // PHASE 2: BUY — fill open slots with best opportunities
+  const maxPositions = 6;
+  const shuffled = [...COINS].sort(()=>Math.random()-0.5);
+  let bought = 0;
+  for(const coin of shuffled){
+    if(bought >= 2) break; // max 2 buys per cycle
+    const holdCount = Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length;
+    if(holdCount >= maxPositions) break;
+    if(!prices[coin.id]) continue;
+    if(state.holdings[coin.id] && state.holdings[coin.id].amount > 0.000001) continue;
+    const signal = getSignal(coin.id);
+    if(signal !== 'BUY') continue;
+    const posSize = state.balance * (maxPosPct/100);
+    if(posSize < 1 || state.balance < 1 || state.balance <= 0) continue;
+    const price = prices[coin.id].usd;
+    const amount = posSize / price;
+    if(isRiskyTrade(coin.id, 'BUY', posSize)){
+      await showRiskyNotification(coin, 'BUY', amount, price, posSize);
+    } else {
+      executeBuy(coin, amount, price, posSize);
     }
+    bought++;
   }
 
   brainEl.textContent = `Brain active — Last scan: ${new Date().toLocaleTimeString()} | Watching ${COINS.length} coins | Holding ${Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length} positions`;
