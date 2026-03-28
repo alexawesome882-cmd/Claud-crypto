@@ -339,18 +339,23 @@ function getSignal(coinId){
   const bullish24h = chg > 1.5;
   const bearish24h = chg < -1.5;
 
-  // If we hold this coin, evaluate sell conditions
+  // If we hold this coin, evaluate sell conditions — sell often, even penny profits
   if(held && held.amount>0){
     const curPrice = p.usd;
     const gain = ((curPrice/held.avgPrice)-1)*100;
     const holdMins = (Date.now()-held.buyTime)/60000;
-    // Take profit at 3%+ or stop loss at -2%
-    if(gain > 3) return 'SELL';
-    if(gain < -2) return 'SELL';
-    // If held > 30 min and momentum reversed
-    if(holdMins > 30 && !momPositive && gain > 0.5) return 'SELL';
-    // If bearish swing after holding
-    if(bearish24h && holdMins > 10) return 'SELL';
+    // Quick scalp: take any profit > 0.3%
+    if(gain > 0.3) return 'SELL';
+    // Stop loss at -1.5%
+    if(gain < -1.5) return 'SELL';
+    // If held > 5 min with any profit at all, take it
+    if(holdMins > 5 && gain > 0) return 'SELL';
+    // If held > 10 min and momentum reversed, cut even small losses
+    if(holdMins > 10 && !momPositive) return 'SELL';
+    // If held > 20 min regardless — don't sit on stale positions
+    if(holdMins > 20) return 'SELL';
+    // If bearish swing, get out fast
+    if(bearish24h && holdMins > 3) return 'SELL';
     return 'HOLD';
   }
 
@@ -400,7 +405,7 @@ async function brainCycle(){
 
     if(signal === 'BUY' && holdCount < maxPositions){
       const posSize = state.balance * (maxPosPct/100);
-      if(posSize < 5 || state.balance < 10 || state.balance <= 0) continue;
+      if(posSize < 1 || state.balance < 1 || state.balance <= 0) continue;
       const price = prices[coin.id].usd;
       const amount = posSize / price;
 
@@ -434,13 +439,13 @@ async function brainCycle(){
 function canTradeNow(){
   const oneHourAgo = Date.now() - 3600000;
   tradeTimestamps = tradeTimestamps.filter(t => t > oneHourAgo);
-  return tradeTimestamps.length < 10;
+  return tradeTimestamps.length < 60;
 }
 
 function executeBuy(coin, amount, price, cost){
   if(!canTradeNow()){ addLogEntry(`SKIPPED BUY ${coin.sym} — 10 trades/hr limit reached`, 'cancel'); return; }
   if(cost > state.balance) cost = state.balance;
-  if(cost < 5) return;
+  if(cost < 1) return;
   amount = cost / price;
   state.balance = Math.max(0, state.balance - cost);
   tradeTimestamps.push(Date.now());
