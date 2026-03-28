@@ -174,6 +174,7 @@ let loopTimer = null;
 let prices = {};       // {coinId: {usd, usd_24h_change, history:[]}}
 let pendingTrade = null;
 let notifTimer = null;
+let tradeTimestamps = []; // track trade times for rate limiting
 
 function defaultState(){
   return {
@@ -269,7 +270,8 @@ function renderStats(){
   pnlEl.textContent = (pnl>=0?'+':'-')+'$'+fmt(Math.abs(pnl));
   pnlEl.className = 'value '+(pnl>=0?'green':'red');
   document.getElementById('statTrades').textContent = state.totalTrades;
-  const wr = state.totalTrades>0 ? ((state.wins/state.totalTrades)*100).toFixed(0) : 0;
+  const completedTrades = state.wins + state.losses;
+  const wr = completedTrades>0 ? ((state.wins/completedTrades)*100).toFixed(0) : '—';
   document.getElementById('statWinRate').textContent = wr+'%';
 }
 
@@ -291,7 +293,7 @@ function renderLog(){
   }).join('');
 }
 
-function fmt(n){ return n>=1?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toPrecision(4); }
+function fmt(n){ return Math.abs(n)>=1?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n.toFixed(6); }
 
 // ========== PRICE FETCHING ==========
 async function fetchPrices(){
@@ -398,7 +400,7 @@ async function brainCycle(){
 
     if(signal === 'BUY' && holdCount < maxPositions){
       const posSize = state.balance * (maxPosPct/100);
-      if(posSize < 5 || state.balance < 10) continue;
+      if(posSize < 5 || state.balance < 10 || state.balance <= 0) continue;
       const price = prices[coin.id].usd;
       const amount = posSize / price;
 
@@ -429,8 +431,19 @@ async function brainCycle(){
   renderStats();
 }
 
+function canTradeNow(){
+  const oneHourAgo = Date.now() - 3600000;
+  tradeTimestamps = tradeTimestamps.filter(t => t > oneHourAgo);
+  return tradeTimestamps.length < 10;
+}
+
 function executeBuy(coin, amount, price, cost){
-  state.balance -= cost;
+  if(!canTradeNow()){ addLogEntry(`SKIPPED BUY ${coin.sym} — 10 trades/hr limit reached`, 'cancel'); return; }
+  if(cost > state.balance) cost = state.balance;
+  if(cost < 5) return;
+  amount = cost / price;
+  state.balance = Math.max(0, state.balance - cost);
+  tradeTimestamps.push(Date.now());
   if(!state.holdings[coin.id]){
     state.holdings[coin.id] = {amount, avgPrice: price, buyTime: Date.now()};
   } else {
@@ -445,11 +458,13 @@ function executeBuy(coin, amount, price, cost){
 }
 
 function executeSell(coin, amount, price, value){
+  if(!canTradeNow()){ addLogEntry(`SKIPPED SELL ${coin.sym} — 10 trades/hr limit reached`, 'cancel'); return; }
   const h = state.holdings[coin.id];
   if(!h) return;
   const pnl = (price - h.avgPrice) * amount;
   if(pnl > 0) state.wins++; else state.losses++;
   state.balance += value;
+  tradeTimestamps.push(Date.now());
   // CRITICAL: Remove the holding completely
   delete state.holdings[coin.id];
   state.totalTrades++;
