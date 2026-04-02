@@ -26,7 +26,7 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
   overflow-x:auto;
 }
 .stat {
-  flex:1; min-width:110px;
+  flex:1; min-width:90px;
   text-align:center;
   padding:10px 8px;
   border-right:1px solid #e0e8d8;
@@ -42,14 +42,15 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
   display:flex; flex-wrap:wrap; gap:6px; align-items:center;
 }
 .emoji-filter {
-  font-size:20px; cursor:pointer;
-  padding:3px 6px; border-radius:8px;
+  font-size:19px; cursor:pointer;
+  padding:3px 7px; border-radius:8px;
   border:2px solid transparent;
-  transition:.15s; line-height:1;
+  transition:.15s; line-height:1.2;
+  user-select:none;
 }
-.emoji-filter:hover   { background:#f0f7e8; border-color:#aad08a; }
-.emoji-filter.active  { background:#e0f0cc; border-color:#2d6a2d; }
-.filter-label { font-size:12px; color:#666; margin-right:4px; white-space:nowrap; }
+.emoji-filter:hover  { background:#f0f7e8; border-color:#aad08a; }
+.emoji-filter.active { background:#e0f0cc; border-color:#2d6a2d; }
+.filter-label { font-size:12px; color:#666; margin-right:2px; white-space:nowrap; }
 .clear-filter {
   margin-left:auto; font-size:12px; color:#2d6a2d;
   cursor:pointer; text-decoration:underline; white-space:nowrap;
@@ -63,13 +64,12 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
 .search-bar input {
   width:100%; padding:9px 14px;
   border:1.5px solid #c8deb8; border-radius:24px;
-  font-size:14px; background:#fff; outline:none;
-  color:#222;
+  font-size:14px; background:#fff; outline:none; color:#222;
 }
 .search-bar input:focus { border-color:#2d6a2d; }
 
 #map {
-  width:100%; height:calc(100vh - 220px);
+  width:100%; height:calc(100vh - 230px);
   min-height:400px;
 }
 
@@ -80,42 +80,42 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
   border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
   border:2px solid #fff;
   box-shadow:0 2px 6px rgba(0,0,0,.35);
-  font-size:18px;
-  cursor:pointer;
-  transition:.15s;
+  font-size:18px; cursor:pointer; transition:.15s;
 }
-.barn-marker.dim { opacity:0.3; }
+.barn-marker.dim { opacity:0.25; pointer-events:none; }
 
 .leaflet-popup-content-wrapper {
   border-radius:14px !important;
   box-shadow:0 4px 20px rgba(0,0,0,.18) !important;
   padding:0 !important;
-  min-width:260px;
+  min-width:270px;
 }
 .leaflet-popup-content { margin:0 !important; }
 .popup-inner { padding:16px; }
 .popup-inner h2 { font-size:16px; font-weight:800; color:#1a3d1a; margin-bottom:2px; }
-.popup-inner .addr { font-size:12px; color:#777; margin-bottom:8px; }
-.popup-inner .hours { font-size:12px; color:#555; margin-bottom:8px; }
+.popup-badge {
+  display:inline-block; font-size:10px; font-weight:700;
+  padding:2px 7px; border-radius:20px; margin-bottom:6px;
+  background:#e0f0cc; color:#2d6a2d; border:1px solid #aad08a;
+}
+.popup-badge.seasonal { background:#fff3cd; color:#856404; border-color:#ffc107; }
+.popup-inner .addr  { font-size:12px; color:#777; margin-bottom:5px; }
+.popup-inner .hours { font-size:12px; color:#555; margin-bottom:9px; }
 .popup-inner .hours span { font-weight:600; color:#2d6a2d; }
-.popup-products { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px; }
+.popup-products { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:11px; }
 .popup-product {
   font-size:11px; background:#f0f7e8;
   border:1px solid #c8deb8; border-radius:20px;
   padding:3px 8px; color:#2d6a2d;
-  display:flex; align-items:center; gap:3px;
 }
 .popup-website {
   display:block; text-align:center;
   background:#2d6a2d; color:#fff;
   text-decoration:none; border-radius:8px;
   padding:7px 14px; font-size:13px; font-weight:600;
-  transition:.15s;
 }
 .popup-website:hover { background:#3a8a3a; }
-.popup-website.no-site {
-  background:#aaa; cursor:default; pointer-events:none;
-}
+.popup-website.no-site { background:#bbb; pointer-events:none; }
 
 .footer {
   text-align:center; padding:8px;
@@ -128,7 +128,7 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
 
 <div class="header">
   <h1>🌽 Farmers Market Map</h1>
-  <p>Find local farms near you — tap any marker to see what's offered</p>
+  <p>Established markets · tap a marker to see what's offered</p>
 </div>
 
 <div class="stats-bar">
@@ -139,81 +139,317 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background:#f5f7f0; c
 </div>
 
 <div class="emoji-strip">
-  <span class="filter-label">Filter by product:</span>
-  <span class="emoji-filter" data-cat="produce">🥦</span>
-  <span class="emoji-filter" data-cat="fruit">🍎</span>
-  <span class="emoji-filter" data-cat="meat">🥩</span>
-  <span class="emoji-filter" data-cat="eggs">🥚</span>
-  <span class="emoji-filter" data-cat="dairy">🧀</span>
-  <span class="emoji-filter" data-cat="honey">🍯</span>
-  <span class="emoji-filter" data-cat="bread">🍞</span>
-  <span class="emoji-filter" data-cat="flowers">🌸</span>
-  <span class="emoji-filter" data-cat="seafood">🦞</span>
-  <span class="emoji-filter" data-cat="herbs">🌿</span>
-  <span class="emoji-filter" data-cat="poultry">🍗</span>
-  <span class="emoji-filter" data-cat="preserves">🪴</span>
-  <span class="clear-filter" id="clearFilter">Clear filter</span>
+  <span class="filter-label">Filter:</span>
+  <span class="emoji-filter" data-cat="produce"  title="Produce">🥦</span>
+  <span class="emoji-filter" data-cat="fruit"    title="Fruit">🍎</span>
+  <span class="emoji-filter" data-cat="meat"     title="Meat">🥩</span>
+  <span class="emoji-filter" data-cat="eggs"     title="Eggs">🥚</span>
+  <span class="emoji-filter" data-cat="dairy"    title="Dairy">🧀</span>
+  <span class="emoji-filter" data-cat="rawdairy" title="Raw Dairy">🥛</span>
+  <span class="emoji-filter" data-cat="honey"    title="Honey">🍯</span>
+  <span class="emoji-filter" data-cat="bread"    title="Baked Goods">🍞</span>
+  <span class="emoji-filter" data-cat="flowers"  title="Flowers">🌸</span>
+  <span class="emoji-filter" data-cat="seafood"  title="Seafood">🦞</span>
+  <span class="emoji-filter" data-cat="herbs"    title="Herbs">🌿</span>
+  <span class="emoji-filter" data-cat="poultry"  title="Poultry">🍗</span>
+  <span class="emoji-filter" data-cat="preserves"title="Jams & Preserves">🫙</span>
+  <span class="clear-filter" id="clearFilter">Clear</span>
 </div>
 
 <div class="search-bar">
-  <input id="searchBox" type="text" placeholder="🔍  Search by market name or city...">
+  <input id="searchBox" type="text" placeholder="🔍  Search by name or city...">
 </div>
 
 <div id="map"></div>
-
-<div class="footer">Data for informational purposes · Tap a marker to see details and visit official websites</div>
+<div class="footer">Tap a marker · links open official market websites · always verify hours before visiting</div>
 
 <script>
 const CATS = {
-  produce:   { emoji:'🥦', label:'Produce' },
-  fruit:     { emoji:'🍎', label:'Fruit' },
-  meat:      { emoji:'🥩', label:'Meat' },
-  eggs:      { emoji:'🥚', label:'Eggs' },
-  dairy:     { emoji:'🧀', label:'Dairy' },
-  honey:     { emoji:'🍯', label:'Honey' },
-  bread:     { emoji:'🍞', label:'Baked Goods' },
-  flowers:   { emoji:'🌸', label:'Flowers' },
-  seafood:   { emoji:'🦞', label:'Seafood' },
-  herbs:     { emoji:'🌿', label:'Herbs' },
-  poultry:   { emoji:'🍗', label:'Poultry' },
-  preserves: { emoji:'🪴', label:'Jams & Preserves' },
+  produce:  { emoji:'🥦', label:'Produce' },
+  fruit:    { emoji:'🍎', label:'Fruit' },
+  meat:     { emoji:'🥩', label:'Meat' },
+  eggs:     { emoji:'🥚', label:'Eggs' },
+  dairy:    { emoji:'🧀', label:'Dairy' },
+  rawdairy: { emoji:'🥛', label:'Raw Dairy' },
+  honey:    { emoji:'🍯', label:'Honey' },
+  bread:    { emoji:'🍞', label:'Baked Goods' },
+  flowers:  { emoji:'🌸', label:'Flowers' },
+  seafood:  { emoji:'🦞', label:'Seafood' },
+  herbs:    { emoji:'🌿', label:'Herbs' },
+  poultry:  { emoji:'🍗', label:'Poultry' },
+  preserves:{ emoji:'🫙', label:'Jams & Preserves' },
 };
 
+// year_round: true = established permanent market
 const MARKETS = [
-  { name:'Oldsmar Farmers Market', lat:28.0342, lng:-82.6654, addr:'Oldsmar City Park, Oldsmar, FL', hours:'Sat 9am–2pm', cats:['produce','fruit','eggs','honey','bread','flowers','herbs'], url:'https://www.myoldsmar.com/252/Farmers-Market' },
-  { name:'Palm Harbor Farmers Market', lat:28.0784, lng:-82.7629, addr:'Alderman Rd, Palm Harbor, FL', hours:'Sun 9am–2pm', cats:['produce','fruit','meat','eggs','dairy','honey','bread','herbs'], url:'https://www.palmharborfarmersmarket.com' },
-  { name:'Tarpon Springs Farmers Market', lat:28.1473, lng:-82.7568, addr:'Craig Park, Tarpon Springs, FL', hours:'Sat 9am–1pm', cats:['produce','fruit','seafood','eggs','herbs','honey','flowers'], url:'https://www.tarponspringsfarmersmarket.com' },
-  { name:'Clearwater Farmers Market', lat:27.9659, lng:-82.8001, addr:'Downtown Clearwater, FL', hours:'Sat 9am–2pm', cats:['produce','fruit','meat','eggs','dairy','bread','flowers','herbs','honey'], url:'https://www.clearwaterfarmersmarket.com' },
-  { name:'Lutz Farmers Market', lat:28.1542, lng:-82.4586, addr:'Lake Park, Lutz, FL', hours:'Sat 8am–1pm', cats:['produce','eggs','honey','bread','herbs','flowers'], url:null },
-  { name:'St. Pete Saturday Morning Market', lat:27.7716, lng:-82.6359, addr:'Al Lang Stadium, St. Petersburg, FL', hours:'Sat 9am–2pm (Oct–May)', cats:['produce','fruit','meat','eggs','dairy','seafood','bread','flowers','herbs','honey','preserves'], url:'https://www.saturdaymorningmarket.com' },
-  { name:'Tampa Armature Works Market', lat:27.9553, lng:-82.4593, addr:'1910 N Ola Ave, Tampa, FL', hours:'Sun 10am–3pm', cats:['produce','fruit','bread','herbs','flowers','honey','preserves'], url:'https://armatureworks.com' },
-  { name:'Dunedin Farmers Market', lat:28.0195, lng:-82.7745, addr:'Main St, Dunedin, FL', hours:'Sat 9am–1pm', cats:['produce','fruit','eggs','honey','bread','herbs','flowers'], url:'https://www.dunedinfarmersmarket.com' },
-  { name:'Safety Harbor Farmers Market', lat:27.9912, lng:-82.6929, addr:'Main St, Safety Harbor, FL', hours:'Sat 9am–2pm', cats:['produce','fruit','eggs','dairy','honey','bread','flowers','herbs','preserves'], url:'https://www.safetyharborfarmersmarket.com' },
-  { name:'New Port Richey Farmers Market', lat:28.2442, lng:-82.7193, addr:'Sims Park, New Port Richey, FL', hours:'Sat 9am–1pm', cats:['produce','eggs','herbs','honey','bread','flowers'], url:null },
-  { name:'Wesley Chapel Farmers Market', lat:28.1897, lng:-82.3488, addr:'Wesley Chapel, FL', hours:'Sun 9am–2pm', cats:['produce','fruit','meat','eggs','dairy','bread','herbs'], url:null },
-  { name:'Brandon Farmers Market', lat:27.9378, lng:-82.2859, addr:'Brandon Town Center, Brandon, FL', hours:'Sat 9am–2pm', cats:['produce','fruit','eggs','honey','bread','flowers','herbs'], url:null },
-  { name:'Riverview Farmers Market', lat:27.8656, lng:-82.3259, addr:'Riverview, FL', hours:'Sat 8am–12pm', cats:['produce','eggs','herbs','honey','flowers'], url:null },
-  { name:'Plant City Strawberry Market', lat:28.0189, lng:-82.1140, addr:'Downtown Plant City, FL', hours:'Sat 8am–1pm (Jan–Mar peak)', cats:['fruit','produce','honey','bread','preserves'], url:'https://www.plantcitygov.com' },
-  { name:'Lakeland Farmers Curb Market', lat:28.0395, lng:-81.9498, addr:'2101 Sherwood St, Lakeland, FL', hours:'Tue, Thu, Sat 7am–2pm', cats:['produce','fruit','meat','eggs','dairy','honey','bread','flowers','herbs','poultry'], url:'https://www.lakelandfarmersmarket.com' },
-  { name:'Union Square Greenmarket', lat:40.7358, lng:-73.9908, addr:'Union Square, New York, NY', hours:'Mon, Wed, Fri, Sat 8am–6pm', cats:['produce','fruit','meat','eggs','dairy','bread','flowers','herbs','honey','preserves','seafood'], url:'https://www.grownyc.org/greenmarket/manhattan-union-square-m' },
-  { name:'Pike Place Market', lat:47.6097, lng:-122.3422, addr:'85 Pike St, Seattle, WA', hours:'Daily 9am–5pm', cats:['produce','fruit','seafood','meat','eggs','dairy','bread','flowers','herbs','honey','preserves'], url:'https://www.pikeplacemarket.org' },
-  { name:'Ferry Building Marketplace', lat:37.7955, lng:-122.3937, addr:'1 Ferry Building, San Francisco, CA', hours:'Tue, Thu 10am–2pm · Sat 8am–2pm', cats:['produce','fruit','meat','eggs','dairy','bread','flowers','herbs','honey','seafood','preserves'], url:'https://www.ferrybuildingmarketplace.com' },
-  { name:'Portland Saturday Market', lat:45.5232, lng:-122.6702, addr:'Tom McCall Waterfront Park, Portland, OR', hours:'Sat 8:30am–5pm · Sun 11am–4:30pm', cats:['produce','fruit','bread','flowers','herbs','honey','preserves'], url:'https://www.portlandsaturdaymarket.com' },
-  { name:'Austin Farmers Market', lat:30.2628, lng:-97.7450, addr:'Republic Square, Austin, TX', hours:'Sat 9am–1pm · Sun 10am–2pm', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves'], url:'https://www.austinfarmersmarket.org' },
-  { name:'Chicago Green City Market', lat:41.9093, lng:-87.6362, addr:'Lincoln Park, Chicago, IL', hours:'Wed & Sat 7am–1pm (May–Oct)', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers'], url:'https://www.greencitymarket.org' },
-  { name:'Denver Farmers Market', lat:39.7534, lng:-104.9842, addr:'Civic Center Park, Denver, CO', hours:'Wed & Sat 7am–2pm', cats:['produce','fruit','meat','eggs','dairy','bread','flowers','herbs','honey','preserves'], url:'https://www.southpearlstreet.com/farmers-market' },
-  { name:'Boston Copley Square Farmers Market', lat:42.3494, lng:-71.0773, addr:'Copley Square, Boston, MA', hours:'Tue & Fri 11am–6pm (Jun–Nov)', cats:['produce','fruit','eggs','dairy','bread','herbs','honey','flowers'], url:'https://www.massfarmersmarkets.org' },
-  { name:'Philadelphia Clark Park Farmers Market', lat:39.9470, lng:-75.2173, addr:'Clark Park, Philadelphia, PA', hours:'Sat 10am–2pm', cats:['produce','fruit','eggs','dairy','bread','herbs','honey','meat'], url:'https://www.clarkparkfarmersmarket.org' },
-  { name:'Nashville Farmers Market', lat:36.1648, lng:-86.7929, addr:'900 Rosa L. Parks Blvd, Nashville, TN', hours:'Daily 8am–6pm', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves'], url:'https://www.nashvillefarmersmarket.org' },
-  { name:'Atlanta Municipal Market', lat:33.7528, lng:-84.3734, addr:'209 Edgewood Ave SE, Atlanta, GA', hours:'Mon–Sat 8am–6pm', cats:['produce','fruit','meat','poultry','eggs','dairy','bread','herbs'], url:'https://www.municipalmarket.org' },
-  { name:'New Orleans Crescent City Farmers Market', lat:29.9511, lng:-90.0715, addr:'Magazine & Girod, New Orleans, LA', hours:'Sat 8am–12pm · Tue 9am–1pm', cats:['produce','fruit','seafood','eggs','dairy','bread','herbs','honey','flowers','preserves'], url:'https://www.crescentcityfarmersmarket.org' },
-  { name:'Minneapolis Mill City Farmers Market', lat:44.9793, lng:-93.2510, addr:'704 S 2nd St, Minneapolis, MN', hours:'Sat 8am–1pm (May–Oct)', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves'], url:'https://www.millcityfarmersmarket.org' },
-  { name:"Phoenix Farmer's Market", lat:33.4485, lng:-112.0740, addr:'721 N Central Ave, Phoenix, AZ', hours:'Sat 8am–1pm (Oct–May)', cats:['produce','fruit','eggs','dairy','bread','herbs','honey','flowers','preserves'], url:'https://www.phoenixpublicmarket.com' },
-  { name:'Los Angeles Farmers Market', lat:34.0722, lng:-118.3580, addr:'6333 W 3rd St, Los Angeles, CA', hours:'Mon–Fri 9am–9pm · Sat 9am–8pm · Sun 10am–7pm', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves','seafood'], url:'https://www.farmersmarketla.com' },
-  { name:'Miami Coconut Grove Farmers Market', lat:25.7284, lng:-80.2396, addr:'Grand Ave, Miami, FL', hours:'Sat 10am–6:30pm · Sun 10am–6:30pm', cats:['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves','seafood'], url:'https://www.coconutgrovefarmersmarket.com' },
+
+  // ── FLORIDA / TAMPA BAY ──
+  {
+    name: 'St. Pete Saturday Morning Market',
+    lat: 27.7716, lng: -82.6359,
+    addr: 'Al Lang Stadium area, St. Petersburg, FL',
+    hours: 'Sat 9am–2pm · Oct–May',
+    cats: ['produce','fruit','meat','eggs','dairy','seafood','bread','flowers','herbs','honey','preserves'],
+    year_round: false,
+    url: 'https://www.saturdaymorningmarket.com'
+  },
+  {
+    name: 'Tarpon Springs Farmers Market',
+    lat: 28.1473, lng: -82.7568,
+    addr: 'Craig Park, Tarpon Springs, FL',
+    hours: 'Sat 9am–1pm · year-round',
+    cats: ['produce','fruit','seafood','eggs','herbs','honey','flowers','bread'],
+    year_round: true,
+    url: 'https://www.tarponspringsfarmersmarket.com'
+  },
+  {
+    name: 'Clearwater Farmers Market',
+    lat: 27.9659, lng: -82.8001,
+    addr: 'Downtown Clearwater, FL',
+    hours: 'Sat 9am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','bread','flowers','herbs','honey'],
+    year_round: true,
+    url: 'https://www.clearwaterfarmersmarket.com'
+  },
+  {
+    name: 'Palm Harbor Farmers Market',
+    lat: 28.0784, lng: -82.7629,
+    addr: 'Alderman Rd, Palm Harbor, FL',
+    hours: 'Sun 9am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','honey','bread','herbs'],
+    year_round: true,
+    url: null
+  },
+  {
+    name: 'Dunedin Farmers Market',
+    lat: 28.0195, lng: -82.7745,
+    addr: 'Main St, Dunedin, FL',
+    hours: 'Sat 9am–1pm · year-round',
+    cats: ['produce','fruit','eggs','honey','bread','herbs','flowers'],
+    year_round: true,
+    url: null
+  },
+  {
+    name: 'Safety Harbor Farmers Market',
+    lat: 27.9912, lng: -82.6929,
+    addr: 'Main St, Safety Harbor, FL',
+    hours: 'Sat 9am–2pm · year-round',
+    cats: ['produce','fruit','eggs','dairy','honey','bread','flowers','herbs','preserves'],
+    year_round: true,
+    url: null
+  },
+  {
+    name: 'Oldsmar Farmers Market',
+    lat: 28.0342, lng: -82.6654,
+    addr: 'Oldsmar City Park, Oldsmar, FL',
+    hours: 'Sat 9am–2pm · year-round',
+    cats: ['produce','fruit','eggs','honey','bread','flowers','herbs'],
+    year_round: true,
+    url: 'https://www.myoldsmar.com/252/Farmers-Market'
+  },
+  {
+    name: 'Lakeland Farmers Curb Market',
+    lat: 28.0395, lng: -81.9498,
+    addr: '2101 Sherwood St, Lakeland, FL',
+    hours: 'Tue, Thu, Sat 7am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','honey','bread','flowers','herbs','poultry'],
+    year_round: true,
+    url: 'https://www.lakelandgov.net/departments/parks-recreation/lakeland-farmers-curb-market/'
+  },
+  {
+    name: 'Nashville Farmers Market',
+    lat: 28.2442, lng: -82.7193,
+    addr: 'Sims Park, New Port Richey, FL',
+    hours: 'Sat 9am–1pm · year-round',
+    cats: ['produce','eggs','herbs','honey','bread','flowers'],
+    year_round: true,
+    url: null
+  },
+  {
+    name: 'Plant City Farmers Market',
+    lat: 28.0189, lng: -82.1140,
+    addr: 'Downtown Plant City, FL',
+    hours: 'Sat 8am–12pm · year-round (strawberries Jan–Mar)',
+    cats: ['fruit','produce','honey','bread','preserves','eggs'],
+    year_round: true,
+    url: 'https://www.plantcitygov.com/government/departments/parks-recreation/community-farmers-market'
+  },
+  {
+    name: 'Miami Coconut Grove Farmers Market',
+    lat: 25.7284, lng: -80.2396,
+    addr: 'Grand Ave & Margaret St, Miami, FL',
+    hours: 'Sat–Sun 10am–6:30pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves','seafood'],
+    year_round: true,
+    url: 'https://coconutgrovefarmersmarket.com'
+  },
+
+  // ── NATIONAL — ESTABLISHED PERMANENT MARKETS ──
+  {
+    name: 'Union Square Greenmarket',
+    lat: 40.7358, lng: -73.9908,
+    addr: 'Union Square Park, New York, NY',
+    hours: 'Mon, Wed, Fri, Sat 8am–6pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','flowers','herbs','honey','preserves','seafood'],
+    year_round: true,
+    url: 'https://www.grownyc.org/greenmarket/manhattan-union-square-m'
+  },
+  {
+    name: 'Pike Place Market',
+    lat: 47.6097, lng: -122.3422,
+    addr: '85 Pike St, Seattle, WA',
+    hours: 'Daily 9am–5pm · year-round',
+    cats: ['produce','fruit','seafood','meat','eggs','dairy','rawdairy','bread','flowers','herbs','honey','preserves'],
+    year_round: true,
+    url: 'https://www.pikeplacemarket.org'
+  },
+  {
+    name: 'Ferry Building Farmers Market',
+    lat: 37.7955, lng: -122.3937,
+    addr: '1 Ferry Building, San Francisco, CA',
+    hours: 'Tue & Thu 10am–2pm · Sat 8am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','flowers','herbs','honey','seafood','preserves'],
+    year_round: true,
+    url: 'https://www.ferrybuildingmarketplace.com/farmers-market/'
+  },
+  {
+    name: 'Los Angeles Farmers Market',
+    lat: 34.0722, lng: -118.3580,
+    addr: '6333 W 3rd St, Los Angeles, CA',
+    hours: 'Mon–Fri 9am–9pm · Sat 9am–8pm · Sun 10am–7pm',
+    cats: ['produce','fruit','meat','eggs','dairy','bread','herbs','honey','flowers','preserves','seafood'],
+    year_round: true,
+    url: 'https://www.farmersmarketla.com'
+  },
+  {
+    name: 'Nashville Farmers Market (TN)',
+    lat: 36.1648, lng: -86.7929,
+    addr: '900 Rosa L. Parks Blvd, Nashville, TN',
+    hours: 'Daily 8am–6pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','herbs','honey','flowers','preserves','poultry'],
+    year_round: true,
+    url: 'https://www.nashvillefarmersmarket.org'
+  },
+  {
+    name: 'Atlanta State Farmers Market',
+    lat: 33.6218, lng: -84.4365,
+    addr: '16 Forest Pkwy, Forest Park, GA (Atlanta)',
+    hours: 'Mon–Sat 6am–6pm · year-round',
+    cats: ['produce','fruit','meat','poultry','eggs','dairy','bread','herbs','flowers'],
+    year_round: true,
+    url: 'https://agr.georgia.gov/georgia-farmers-market-system'
+  },
+  {
+    name: 'Portland Saturday Market',
+    lat: 45.5232, lng: -122.6702,
+    addr: 'Tom McCall Waterfront Park, Portland, OR',
+    hours: 'Sat 8:30am–5pm · Sun 11am–4:30pm · Mar–Dec',
+    cats: ['produce','fruit','bread','flowers','herbs','honey','preserves'],
+    year_round: false,
+    url: 'https://www.portlandsaturdaymarket.com'
+  },
+  {
+    name: 'Austin Farmers Market',
+    lat: 30.2628, lng: -97.7450,
+    addr: 'Republic Square, Austin, TX',
+    hours: 'Sat 9am–1pm · Sun 10am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','herbs','honey','flowers','preserves'],
+    year_round: true,
+    url: 'https://www.austinfarmersmarket.org'
+  },
+  {
+    name: 'Chicago Green City Market',
+    lat: 41.9093, lng: -87.6362,
+    addr: 'Lincoln Park, Chicago, IL',
+    hours: 'Wed & Sat 7am–1pm · May–Oct (indoor Nov–Apr)',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','herbs','honey','flowers'],
+    year_round: false,
+    url: 'https://www.greencitymarket.org'
+  },
+  {
+    name: 'Philadelphia Reading Terminal Market',
+    lat: 39.9530, lng: -75.1590,
+    addr: '51 N 12th St, Philadelphia, PA',
+    hours: 'Mon–Sat 8am–6pm · Sun 9am–5pm · year-round',
+    cats: ['produce','fruit','meat','poultry','eggs','dairy','rawdairy','bread','herbs','honey','seafood','preserves'],
+    year_round: true,
+    url: 'https://www.readingterminalmarket.org'
+  },
+  {
+    name: 'Boston Haymarket',
+    lat: 42.3637, lng: -71.0571,
+    addr: 'Blackstone St, Boston, MA',
+    hours: 'Fri & Sat 7am–dusk · year-round',
+    cats: ['produce','fruit','eggs','seafood','herbs'],
+    year_round: true,
+    url: 'https://www.haymarketboston.org'
+  },
+  {
+    name: 'New Orleans Crescent City Farmers Market',
+    lat: 29.9511, lng: -90.0715,
+    addr: 'Magazine & Girod St, New Orleans, LA',
+    hours: 'Sat 8am–12pm · Tue 9am–1pm · year-round',
+    cats: ['produce','fruit','seafood','eggs','dairy','bread','herbs','honey','flowers','preserves'],
+    year_round: true,
+    url: 'https://www.crescentcityfarmersmarket.org'
+  },
+  {
+    name: 'Minneapolis Mill City Farmers Market',
+    lat: 44.9793, lng: -93.2510,
+    addr: '704 S 2nd St, Minneapolis, MN',
+    hours: 'Sat 8am–1pm · May–Oct',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','herbs','honey','flowers','preserves'],
+    year_round: false,
+    url: 'https://www.millcityfarmersmarket.org'
+  },
+  {
+    name: 'Denver Farmers Market (South Pearl St)',
+    lat: 39.6836, lng: -104.9620,
+    addr: 'S Pearl St, Denver, CO',
+    hours: 'Sun 9am–1pm · May–Nov',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','flowers','herbs','honey','preserves'],
+    year_round: false,
+    url: 'https://www.southpearlstreet.com/farmers-market'
+  },
+  {
+    name: 'Phoenix Public Market',
+    lat: 33.4485, lng: -112.0740,
+    addr: '721 N Central Ave, Phoenix, AZ',
+    hours: 'Sat 8am–1pm · year-round',
+    cats: ['produce','fruit','eggs','dairy','bread','herbs','honey','flowers','preserves'],
+    year_round: true,
+    url: 'https://www.phoenixpublicmarket.com'
+  },
+  {
+    name: 'Seattle Ballard Farmers Market',
+    lat: 47.6685, lng: -122.3830,
+    addr: 'Ballard Ave NW, Seattle, WA',
+    hours: 'Sun 9am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','seafood','bread','herbs','honey','flowers','preserves'],
+    year_round: true,
+    url: 'https://www.sfmamarkets.com/visit-ballard-farmers-market'
+  },
+  {
+    name: 'Portland PSU Farmers Market',
+    lat: 45.5118, lng: -122.6837,
+    addr: 'SW Park & Montgomery, Portland, OR',
+    hours: 'Sat 8:30am–2pm · year-round',
+    cats: ['produce','fruit','meat','eggs','dairy','rawdairy','bread','herbs','honey','flowers','preserves','mushrooms'],
+    year_round: true,
+    url: 'https://www.portlandfarmersmarket.org'
+  },
+  {
+    name: 'Raleigh State Farmers Market',
+    lat: 35.7565, lng: -78.6880,
+    addr: '1201 Agriculture St, Raleigh, NC',
+    hours: 'Mon–Sat 5am–6pm · Sun 8am–6pm · year-round',
+    cats: ['produce','fruit','meat','poultry','eggs','dairy','bread','herbs','honey','flowers','preserves'],
+    year_round: true,
+    url: 'https://www.ncagr.gov/markets/facilities/markets/raleigh/'
+  },
 ];
 
-const map = L.map('map', { center:[28.05,-82.55], zoom:10 });
+const map = L.map('map', { center:[36,-96], zoom:4 });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution:'&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://openstreetmap.org">OSM</a>',
   maxZoom:19, subdomains:'abcd'
@@ -224,45 +460,64 @@ let activeFilter=null, searchQuery='', markers=[];
 function barnIcon(dimmed){
   return L.divIcon({
     className:'',
-    html:`<div class="barn-marker${dimmed?' dim':''}}">🏠</div>`,
-    iconSize:[36,36], iconAnchor:[18,18], popupAnchor:[0,-20]
+    html:`<div class="barn-marker${dimmed?' dim':''}">🏠</div>`,
+    iconSize:[36,36], iconAnchor:[18,18], popupAnchor:[0,-22]
   });
 }
 
 function buildPopup(m){
-  const prods=m.cats.map(c=>`<span class="popup-product">${CATS[c].emoji} ${CATS[c].label}</span>`).join('');
-  const link=m.url
-    ?`<a class="popup-website" href="${m.url}" target="_blank" rel="noopener">Visit Website ↗</a>`
-    :`<a class="popup-website no-site">No website listed</a>`;
-  return `<div class="popup-inner"><h2>${m.name}</h2><div class="addr">📍 ${m.addr}</div><div class="hours">⏰ <span>${m.hours}</span></div><div class="popup-products">${prods}</div>${link}</div>`;
+  const badge = m.year_round
+    ? `<span class="popup-badge">✅ Year-round</span>`
+    : `<span class="popup-badge seasonal">📅 Seasonal</span>`;
+  const prods = m.cats
+    .filter(c => CATS[c])
+    .map(c=>`<span class="popup-product">${CATS[c].emoji} ${CATS[c].label}</span>`)
+    .join('');
+  const link = m.url
+    ? `<a class="popup-website" href="${m.url}" target="_blank" rel="noopener noreferrer">Visit Official Website ↗</a>`
+    : `<a class="popup-website no-site">No website listed</a>`;
+  return `<div class="popup-inner">
+    <h2>${m.name}</h2>
+    ${badge}
+    <div class="addr">📍 ${m.addr}</div>
+    <div class="hours">⏰ <span>${m.hours}</span></div>
+    <div class="popup-products">${prods}</div>
+    ${link}
+  </div>`;
 }
 
 function addMarkers(){
-  markers=MARKETS.map(m=>{
-    const marker=L.marker([m.lat,m.lng],{icon:barnIcon(false)}).bindPopup(buildPopup(m),{maxWidth:300}).addTo(map);
-    return {market:m,marker};
+  markers = MARKETS.map(m => {
+    const marker = L.marker([m.lat,m.lng], {icon:barnIcon(false)})
+      .bindPopup(buildPopup(m), {maxWidth:310})
+      .addTo(map);
+    return {market:m, marker};
   });
-  document.getElementById('statTotal').textContent=MARKETS.length;
+  document.getElementById('statTotal').textContent = MARKETS.length;
 }
 
 function applyFilter(){
   let visible=0;
-  markers.forEach(({market:m,marker})=>{
-    const matchesCat=!activeFilter||m.cats.includes(activeFilter);
-    const q=searchQuery.toLowerCase();
-    const matchesSearch=!q||m.name.toLowerCase().includes(q)||m.addr.toLowerCase().includes(q);
-    const show=matchesCat&&matchesSearch;
+  markers.forEach(({market:m, marker})=>{
+    const matchesCat    = !activeFilter || m.cats.includes(activeFilter);
+    const q             = searchQuery.toLowerCase();
+    const matchesSearch = !q || m.name.toLowerCase().includes(q) || m.addr.toLowerCase().includes(q);
+    const show          = matchesCat && matchesSearch;
     marker.setIcon(barnIcon(!show));
     if(show) visible++;
   });
-  document.getElementById('statTotal').textContent=visible;
+  document.getElementById('statTotal').textContent = visible;
 }
 
 document.querySelectorAll('.emoji-filter').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    const cat=btn.dataset.cat;
-    if(activeFilter===cat){ activeFilter=null; btn.classList.remove('active'); }
-    else{ document.querySelectorAll('.emoji-filter').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); activeFilter=cat; }
+    const cat = btn.dataset.cat;
+    if(activeFilter===cat){
+      activeFilter=null; btn.classList.remove('active');
+    } else {
+      document.querySelectorAll('.emoji-filter').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active'); activeFilter=cat;
+    }
     applyFilter();
   });
 });
@@ -273,7 +528,9 @@ document.getElementById('clearFilter').addEventListener('click',()=>{
   applyFilter();
 });
 
-document.getElementById('searchBox').addEventListener('input',e=>{ searchQuery=e.target.value; applyFilter(); });
+document.getElementById('searchBox').addEventListener('input', e=>{
+  searchQuery=e.target.value; applyFilter();
+});
 
 addMarkers();
 </script>
