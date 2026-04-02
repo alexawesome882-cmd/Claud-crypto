@@ -127,6 +127,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#0a0e17;color:#e1e4e
         <option value="low">Low — Conservative</option>
         <option value="medium" selected>Medium — Balanced</option>
         <option value="high">High — Aggressive</option>
+        <option value="yolo">🚀 YOLO — Maximum Chaos</option>
       </select>
       <label>Trade Interval (seconds)</label>
       <input type="number" id="setInterval" value="30" min="10" max="300">
@@ -337,18 +338,29 @@ function getSignal(coinId){
   const bullish24h = chg > 1.5;
   const bearish24h = chg < -1.5;
 
+  const riskLevel = document.getElementById('setRisk').value;
+  const isYolo = riskLevel === 'yolo';
+
   // If we hold this coin, evaluate sell conditions
   if(held && held.amount>0){
     const curPrice = p.usd;
     const gain = ((curPrice/held.avgPrice)-1)*100;
     const holdMins = (Date.now()-held.buyTime)/60000;
-    // Take profit at 3%+ or stop loss at -2%
-    if(gain > 3) return 'SELL';
-    if(gain < -2) return 'SELL';
-    // If held > 30 min and momentum reversed
-    if(holdMins > 30 && !momPositive && gain > 0.5) return 'SELL';
-    // If bearish swing after holding
-    if(bearish24h && holdMins > 10) return 'SELL';
+    if(isYolo){
+      // YOLO: ride it to +12% or bail at -6%, no time-based exits
+      if(gain > 12) return 'SELL';
+      if(gain < -6) return 'SELL';
+      // Dump if momentum fully collapses after a good gain
+      if(gain > 4 && !momPositive && holdMins > 5) return 'SELL';
+    } else {
+      // Take profit at 3%+ or stop loss at -2%
+      if(gain > 3) return 'SELL';
+      if(gain < -2) return 'SELL';
+      // If held > 30 min and momentum reversed
+      if(holdMins > 30 && !momPositive && gain > 0.5) return 'SELL';
+      // If bearish swing after holding
+      if(bearish24h && holdMins > 10) return 'SELL';
+    }
     return 'HOLD';
   }
 
@@ -357,11 +369,18 @@ function getSignal(coinId){
   if(momPositive) score += 2;
   if(bullish24h) score += 2;
   if(goodHours) score += 1;
-  if(volPct > 0.01 && volPct < 2) score += 1; // moderate volatility is good
-  if(chg > 0.5 && chg < 8) score += 1; // trending up but not overextended
+  if(volPct > 0.01 && volPct < 2) score += 1;
+  if(chg > 0.5 && chg < 8) score += 1;
 
-  const riskLevel = document.getElementById('setRisk').value;
-  const threshold = riskLevel==='high'?3 : riskLevel==='low'?6 : 4;
+  // YOLO: also scores high volatility as a buy signal, trades any time
+  if(isYolo){
+    if(volPct > 0.05) score += 2;        // loves volatility
+    if(Math.abs(chg) > 5) score += 2;    // big movers = opportunity
+    if(!momPositive && chg < -4) score += 1; // buy the dip
+    score += 1;                           // always +1 nudge toward action
+  }
+
+  const threshold = isYolo ? 1 : riskLevel==='high' ? 3 : riskLevel==='low' ? 6 : 4;
 
   if(score >= threshold) return 'BUY';
   return 'HOLD';
@@ -388,11 +407,16 @@ async function brainCycle(){
 
   // Shuffle coin evaluation order for diversity
   const shuffled = [...COINS].sort(()=>Math.random()-0.5);
-  const maxPositions = 4;
+  const riskMode = document.getElementById('setRisk').value;
+  const isYoloBrain = riskMode === 'yolo';
+  const maxPositions = isYoloBrain ? 8 : 4;   // YOLO holds up to 8 coins at once
   const holdCount = Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length;
-  const maxPosPct = parseInt(document.getElementById('setMaxPos').value)||15;
+  // YOLO ignores the manual max position size — always bets 30% per trade
+  const maxPosPct = isYoloBrain ? 30 : (parseInt(document.getElementById('setMaxPos').value)||15);
+  let tradesThisCycle = isYoloBrain ? 3 : 1;  // YOLO fires up to 3 trades per cycle
 
   for(const coin of shuffled){
+    if(tradesThisCycle <= 0) break;
     if(!prices[coin.id]) continue;
     const signal = getSignal(coin.id);
 
@@ -402,12 +426,14 @@ async function brainCycle(){
       const price = prices[coin.id].usd;
       const amount = posSize / price;
 
-      if(isRiskyTrade(coin.id, 'BUY', posSize)){
+      // YOLO never asks for confirmation — it just fires
+      if(!isYoloBrain && isRiskyTrade(coin.id, 'BUY', posSize)){
         await showRiskyNotification(coin, 'BUY', amount, price, posSize);
       } else {
         executeBuy(coin, amount, price, posSize);
       }
-      break; // one trade per cycle
+      tradesThisCycle--;
+      continue;
     }
 
     if(signal === 'SELL' && state.holdings[coin.id] && state.holdings[coin.id].amount > 0.000001){
@@ -415,16 +441,20 @@ async function brainCycle(){
       const price = prices[coin.id].usd;
       const value = h.amount * price;
 
-      if(isRiskyTrade(coin.id, 'SELL', value)){
+      if(!isYoloBrain && isRiskyTrade(coin.id, 'SELL', value)){
         await showRiskyNotification(coin, 'SELL', h.amount, price, value);
       } else {
         executeSell(coin, h.amount, price, value);
       }
-      break;
+      tradesThisCycle--;
+      continue;
     }
   }
 
-  brainEl.textContent = `Brain active — Last scan: ${new Date().toLocaleTimeString()} | Watching ${COINS.length} coins | Holding ${Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length} positions`;
+  const heldNow = Object.values(state.holdings).filter(h=>h&&h.amount>0.000001).length;
+  brainEl.textContent = isYoloBrain
+    ? `🚀 YOLO MODE ACTIVE — ${new Date().toLocaleTimeString()} | Holding ${heldNow}/8 positions | Take profit: +12% | Stop loss: -6% | No confirmations`
+    : `Brain active — Last scan: ${new Date().toLocaleTimeString()} | Watching ${COINS.length} coins | Holding ${heldNow} positions`;
   renderPortfolio();
   renderStats();
 }
