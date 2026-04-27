@@ -446,7 +446,7 @@ function canTradeNow(){
 }
 
 function executeBuy(coin, amount, price, cost){
-  if(!canTradeNow()){ addLogEntry(`SKIPPED BUY ${coin.sym} — 10 trades/hr limit reached`, 'cancel'); return; }
+  if(!canTradeNow()){ addLogEntry(`SKIPPED BUY ${coin.sym} — 60 trades/hr limit reached`, 'cancel'); return; }
   if(cost > state.balance) cost = state.balance;
   if(cost < 1) return;
   amount = cost / price;
@@ -466,7 +466,7 @@ function executeBuy(coin, amount, price, cost){
 }
 
 function executeSell(coin, amount, price, value){
-  if(!canTradeNow()){ addLogEntry(`SKIPPED SELL ${coin.sym} — 10 trades/hr limit reached`, 'cancel'); return; }
+  if(!canTradeNow()){ addLogEntry(`SKIPPED SELL ${coin.sym} — 60 trades/hr limit reached`, 'cancel'); return; }
   const h = state.holdings[coin.id];
   if(!h) return;
   const pnl = (price - h.avgPrice) * amount;
